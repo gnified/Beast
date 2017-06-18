@@ -120,6 +120,7 @@ make_queued_http_write(
 template<class Derived, class... Services>
 class async_http_con_base : public http_base
 {
+protected:
     // This function lets us access members of the derived class
     Derived&
     impl()
@@ -153,7 +154,6 @@ class async_http_con_base : public http_base
     // Indicates if we have a write active.
     bool writing_ = false;
 
-protected:
     // The strand makes sure that our data is
     // accessed from only one thread at a time.
     //
@@ -180,9 +180,30 @@ public:
     {
     }
 
+    // Called to start the object after the listener accepts
+    // an incoming connection, when no bytes have been read yet.
+    //
     void
     run()
     {
+        // Just call run with an empty buffer
+        run(boost::asio::null_buffers{});
+    }
+
+    // Called to start the object after the
+    // listener accepts an incoming connection.
+    //
+    template<class ConstBufferSequence>
+    void
+    run(ConstBufferSequence const& buffers)
+    {
+        // Copy the data into the buffer for performing
+        // HTTP reads, so that the bytes get used.
+        //
+        buffer_.commit(boost::asio::buffer_copy(
+            buffer_.prepare(boost::asio::buffer_size(buffers)),
+                buffers));
+
         // Give the derived class a chance to do stuff
         //
         impl().do_handshake();
@@ -210,7 +231,6 @@ protected:
         }
     }
 
-private:
     // Perform an asynchronous read for the next request header
     //
     void

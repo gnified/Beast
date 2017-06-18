@@ -345,7 +345,7 @@ public:
     */
     template<class Body, class Fields>
     void
-    accept(
+    on_upgrade(
         socket_type&& sock,
         endpoint_type ep,
         beast::http::request<Body, Fields>&& req)
